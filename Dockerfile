@@ -17,15 +17,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Force git to use HTTPS instead of SSH (for public repos like libsignal-node)
+# Force ALL git operations to use HTTPS instead of SSH
 RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
-    && git config --global url."https://github.com/".insteadOf "git@github.com:"
+    && git config --global url."https://github.com/".insteadOf "git@github.com:" \
+    && git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
+ENV GIT_TERMINAL_PROMPT=0
 
 # Copy dependency definition
 COPY package.json ./
 
 # Install production dependencies
-RUN npm install --production \
+RUN npm install --omit=dev \
     && npm cache clean --force
 
 
