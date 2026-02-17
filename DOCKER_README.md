@@ -1,59 +1,77 @@
-# MPWA WhatsApp Gateway — Deploy di Coolify
-
-## Port
-
-Set **Ports Exposes** di Coolify: **`8080`**
-
-> Container menggunakan Nginx di port 8080 sebagai reverse proxy ke PHP-FPM dan Node.js.
-
-## Persistent Storage
-
-Tambahkan volume untuk menyimpan sesi WhatsApp agar tidak hilang saat redeploy:
-
-| Source (Volume) | Destination |
-|-----------------|-------------|
-| `mpwa-credentials` | `/var/www/html/credentials` |
+# MPWA WhatsApp Gateway - Docker Deployment
 
 ## Environment Variables
 
+Setelah app berhasil di-install melalui wizard `/install`, **wajib tambahkan** environment variable berikut di Coolify agar app tidak kembali ke halaman install saat redeploy.
+
+> ⚠️ **Penting:** Jika `APP_INSTALLED` tidak di-set ke `true`, app akan redirect ke `/install` setiap kali container restart.
+
 ### Wajib
 
-| Variable | Contoh | Keterangan |
-|----------|--------|------------|
-| `APP_KEY` | *(kosongkan)* | Auto-generate saat pertama kali |
-| `APP_URL` | `https://wa.domain.com` | URL publik aplikasi |
-| `DB_HOST` | `mysql` | Hostname database MySQL |
-| `DB_PORT` | `3306` | Port database |
-| `DB_DATABASE` | `wamd` | Nama database |
-| `DB_USERNAME` | `root` | Username database |
-| `DB_PASSWORD` | `secret` | Password database |
-| `LICENSE_KEY` | `xxxx-xxxx` | License key dari M-Pedia |
-| `BUYER_EMAIL` | `email@example.com` | Email pembeli |
-| `AUTH` | `your-auth-token` | Token autentikasi API |
+```env
+APP_INSTALLED=true
+APP_KEY=base64:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+APP_URL=https://mpwa.domain.com
+APP_ENV=production
+APP_DEBUG=false
+
+DB_HOST=localhost
+DB_PORT=3306
+DB_DATABASE=wamd
+DB_USERNAME=root
+DB_PASSWORD=secretpassword
+
+LICENSE_KEY=your-license-key
+BUYER_EMAIL=your@email.com
+```
 
 ### Opsional
 
-| Variable | Default | Keterangan |
-|----------|---------|------------|
-| `APP_ENV` | `production` | Environment Laravel |
-| `APP_DEBUG` | `false` | Jangan `true` di production |
-| `PORT_NODE` | `3100` | Port internal Node.js |
-| `RUN_MIGRATIONS` | `false` | Set `true` saat deploy pertama kali |
-| `LOG_CHANNEL` | `stack` | Channel logging Laravel |
-| `LOG_LEVEL` | `error` | Level logging |
-| `SESSION_LIFETIME` | `120` | Durasi session (menit) |
-| `MAIL_MAILER` | `smtp` | Driver email |
-| `MAIL_HOST` | — | SMTP host |
-| `MAIL_PORT` | `465` | SMTP port |
-| `MAIL_USERNAME` | — | SMTP username |
-| `MAIL_PASSWORD` | — | SMTP password |
-| `MAIL_ENCRYPTION` | `tls` | Enkripsi email |
-| `MAIL_FROM_ADDRESS` | — | Alamat pengirim email |
-| `GOOGLE_KEY` | — | Google API key (opsional) |
+```env
+AUTH=your-secret-token
+PORT_NODE=3100
+RUN_MIGRATIONS=true
 
-## Deploy Pertama Kali
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=465
+MAIL_USERNAME=your@email.com
+MAIL_PASSWORD=your-mail-password
+MAIL_ENCRYPTION=tls
+MAIL_FROM_ADDRESS=your@email.com
+MAIL_FROM_NAME=MPWA
 
-1. Set semua env variable **wajib** di Coolify
-2. Set `RUN_MIGRATIONS=true`
-3. Deploy
-4. Setelah berhasil, ubah `RUN_MIGRATIONS=false`
+GOOGLE_KEY=your-google-api-key
+```
+
+## Persistent Storage
+
+Tambahkan volume mount di Coolify untuk menyimpan credentials WhatsApp (agar tidak scan QR ulang setiap redeploy):
+
+1. Buka resource MPWA di Coolify
+2. Masuk ke tab **Storages**
+3. Klik **+ Add** lalu isi:
+
+| Field | Value |
+|---|---|
+| **Name** | `mpwa-credentials` |
+| **Source Path** | *(kosongkan)* |
+| **Destination Path** | `/var/www/html/credentials` |
+
+4. Klik **Add**, lalu redeploy
+
+## Port
+
+App menggunakan port **8080** (Nginx). Pastikan konfigurasi port di Coolify mengarah ke `8080`.
+
+## Langkah Deploy
+
+1. Push repo ke GitHub
+2. Buat resource baru di Coolify (Dockerfile based)
+3. Set semua environment variables di atas
+4. Set `RUN_MIGRATIONS=true` untuk deploy pertama
+5. Deploy — app akan tampil halaman `/install`
+6. Isi form install, submit
+7. Copy `APP_KEY` dari container logs, tambahkan ke env vars Coolify
+8. Set `APP_INSTALLED=true` dan `RUN_MIGRATIONS=false` di env vars
+9. Redeploy — app langsung ke halaman login
