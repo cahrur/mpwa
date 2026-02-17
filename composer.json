@@ -21,9 +21,9 @@
     "phpmailer/phpmailer": "^6.9",
     "symfony/http-client": "^6.2",
     "tomcan/acmeclient": "^2.2",
+    "league/flysystem": "^1.1",
     "unisharp/laravel-filemanager": "^2.5"
   },
-
   "require-dev": {
     "facade/ignition": "^2.5",
     "fakerphp/faker": "^1.9.1",
