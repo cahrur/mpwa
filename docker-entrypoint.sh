@@ -117,9 +117,10 @@ fi
 # 6. Laravel cache optimization
 # ──────────────────────────────────────────────
 echo "[6/6] Optimizing Laravel..."
-php artisan config:cache --no-interaction 2>/dev/null || true
+# Skip config:cache — app uses env() directly in controllers/services
+# config:cache makes env() return null outside config files, breaking WA_URL_SERVER etc.
+php artisan config:clear --no-interaction 2>/dev/null || true
 # Skip route:cache — laravel-filemanager has duplicate route names that can't be serialized
-# Just clear any stale route cache instead
 php artisan route:clear --no-interaction 2>/dev/null || true
 php artisan view:cache --no-interaction 2>/dev/null || true
 
