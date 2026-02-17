@@ -88,6 +88,10 @@ if grep -q "^APP_KEY=$" "$APP_DIR/.env" 2>/dev/null || [ -z "$APP_KEY" ]; then
     php artisan key:generate --force --no-interaction
 fi
 
+# Export APP_KEY from .env so config:cache picks it up
+# (config:cache reads env vars, not .env file)
+export APP_KEY=$(grep "^APP_KEY=" "$APP_DIR/.env" | cut -d '=' -f2-)
+
 # ──────────────────────────────────────────────
 # 4. Storage link
 # ──────────────────────────────────────────────
