@@ -17,17 +17,24 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-# Force ALL git operations to use HTTPS instead of SSH
-RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
-    && git config --global url."https://github.com/".insteadOf "git@github.com:" \
-    && git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/"
-ENV GIT_TERMINAL_PROMPT=0
-
 # Copy dependency definition
 COPY package.json ./
 
 # Install production dependencies
-RUN npm install --omit=dev \
+# Force git to use HTTPS instead of SSH for public GitHub repos (baileys → libsignal-node)
+ENV GIT_TERMINAL_PROMPT=0
+ENV GIT_CONFIG_COUNT=3
+ENV GIT_CONFIG_KEY_0=url.https://github.com/.insteadOf
+ENV GIT_CONFIG_VALUE_0=ssh://git@github.com/
+ENV GIT_CONFIG_KEY_1=url.https://github.com/.insteadOf
+ENV GIT_CONFIG_VALUE_1=git@github.com:
+ENV GIT_CONFIG_KEY_2=url.https://github.com/.insteadOf
+ENV GIT_CONFIG_VALUE_2=git+ssh://git@github.com/
+RUN git config --global url."https://github.com/".insteadOf "ssh://git@github.com/" \
+    && git config --global url."https://github.com/".insteadOf "git@github.com:" \
+    && git config --global url."https://github.com/".insteadOf "git+ssh://git@github.com/" \
+    && cat ~/.gitconfig \
+    && npm install --omit=dev \
     && npm cache clean --force
 
 
