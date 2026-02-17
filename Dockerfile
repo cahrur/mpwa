@@ -58,8 +58,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libonig-dev \
     libcurl4-openssl-dev \
     libssl-dev \
+    # Intl extension
+    libicu-dev \
+    # Sharp (Node.js image processing) runtime deps
     libvips42 \
+    # MySQL client (for health checks)
     default-mysql-client \
+    # Misc
     unzip \
     git \
     && rm -rf /var/lib/apt/lists/*
@@ -83,7 +88,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     fileinfo \
     opcache \
     pcntl \
-    exif
+    exif \
+    intl
 
 # ── PHP production config ──
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
