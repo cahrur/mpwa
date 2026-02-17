@@ -1,5 +1,6 @@
 # ── Dependencies ──
-/node_modules
+# /node_modules dan /vendor di-commit karena ada private git dependency
+#/node_modules
 #/vendor
 
 # ── Environment ──

@@ -1,36 +1,8 @@
 # ============================================================
 # MPWA WhatsApp Gateway - Docker Build (Coolify-ready)
+# Single stage — vendor/ dan node_modules/ dari repo langsung
 # ============================================================
 
-# ────────────────────────────────────────────────────────────
-# Stage 1: Install Node.js dependencies
-# Cache key: package.json only — re-runs only when deps change
-# ────────────────────────────────────────────────────────────
-FROM node:18-slim AS node-deps
-
-WORKDIR /app
-
-# Install build dependencies for native modules (sharp, etc.)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 \
-    make \
-    g++ \
-    git \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy ONLY dependency definition file first (cache optimization)
-COPY package.json ./
-
-# Install production dependencies only
-RUN npm install --production --ignore-scripts \
-    && npm rebuild \
-    && npm cache clean --force
-
-
-# ────────────────────────────────────────────────────────────
-# Stage 2: Production runtime
-# Combines PHP-FPM + Node.js + Nginx + Supervisor
-# ────────────────────────────────────────────────────────────
 FROM php:8.1-fpm-bullseye AS production
 
 # ── System dependencies ──
@@ -127,10 +99,7 @@ RUN ln -s /etc/nginx/sites-available/mpwa.conf /etc/nginx/sites-enabled/mpwa.con
 RUN mkdir -p /var/log/supervisor
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# ── Copy node_modules from node stage (Node.js dependencies) ──
-COPY --from=node-deps /app/node_modules ./node_modules
-
-# ── Copy the entire application (including vendor/) ──
+# ── Copy the entire application (including vendor/ and node_modules/) ──
 COPY . .
 
 # ── Ensure directories exist ──
