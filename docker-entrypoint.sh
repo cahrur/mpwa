@@ -110,7 +110,9 @@ fi
 # ──────────────────────────────────────────────
 echo "[6/6] Optimizing Laravel..."
 php artisan config:cache --no-interaction 2>/dev/null || true
-php artisan route:cache --no-interaction 2>/dev/null || true
+# Skip route:cache — laravel-filemanager has duplicate route names that can't be serialized
+# Just clear any stale route cache instead
+php artisan route:clear --no-interaction 2>/dev/null || true
 php artisan view:cache --no-interaction 2>/dev/null || true
 
 echo "=========================================="
