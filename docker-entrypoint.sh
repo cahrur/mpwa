@@ -119,4 +119,7 @@ echo "=========================================="
 echo " Starting supervisord (PHP-FPM + Nginx + Node.js)"
 echo "=========================================="
 
+# Debug: print Laravel error log and test URL after 10 seconds
+(sleep 10 && echo "=== DEBUG: Laravel Log ===" && tail -50 /var/www/html/storage/logs/laravel.log 2>/dev/null && echo "=== DEBUG: Test Request ===" && curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://127.0.0.1:8080/login && echo "=== DEBUG: Test Request Body ===" && curl -s http://127.0.0.1:8080/login 2>/dev/null | head -100) &
+
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
