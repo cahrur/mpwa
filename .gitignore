@@ -1,0 +1,56 @@
+# ── Dependencies ──
+/node_modules
+/vendor
+
+# ── Environment ──
+.env
+.env.backup
+.env.production
+
+# ── Laravel ──
+/storage/*.key
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/framework/cache/data/*
+!/storage/framework/cache/data/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/bootstrap/cache/*
+!/bootstrap/cache/.gitkeep
+/public/storage
+/public/hot
+
+# ── WhatsApp credentials ──
+/credentials
+
+# ── Node.js ──
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ── IDE ──
+/.idea
+/.vscode
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Mix / Build ──
+/public/css/app.css
+/public/js/app.js
+/public/mix-manifest.json
+
+# ── Docker ──
+docker-compose.override.yml
+
+# ── Misc ──
+*.log
+.phpunit.result.cache
