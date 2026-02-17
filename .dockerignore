@@ -1,7 +1,3 @@
-# Dependencies (rebuilt inside container)
-node_modules/
-vendor/
-
 # Runtime data
 credentials/
 storage/logs/*
@@ -33,5 +29,4 @@ Dockerfile
 
 # Misc
 tests/
-*.md
 nodemon.json

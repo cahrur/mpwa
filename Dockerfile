@@ -1,37 +1,9 @@
 # ============================================================
 # MPWA WhatsApp Gateway - Docker Build (Coolify-ready)
-# Multi-stage build with optimized layer caching
 # ============================================================
 
 # ────────────────────────────────────────────────────────────
-# Stage 1: Install PHP (Composer) dependencies
-# Cache key: composer.json only — re-runs only when deps change
-# ────────────────────────────────────────────────────────────
-FROM composer:2 AS composer-deps
-
-WORKDIR /app
-
-# Copy ONLY dependency definition file first (cache optimization)
-COPY composer.json ./
-
-# Install without dev deps, without running scripts (no artisan yet)
-# --no-scripts: prevents post-install scripts that need the full app
-# --ignore-platform-reqs: skip platform checks (we'll have the right PHP in prod)
-RUN composer install \
-    --no-dev \
-    --no-scripts \
-    --no-autoloader \
-    --ignore-platform-reqs \
-    --prefer-dist \
-    --no-interaction
-
-# Now copy rest of app and re-generate autoloader with classmap
-COPY . .
-RUN composer dump-autoload --optimize --no-dev --no-interaction
-
-
-# ────────────────────────────────────────────────────────────
-# Stage 2: Install Node.js dependencies
+# Stage 1: Install Node.js dependencies
 # Cache key: package.json only — re-runs only when deps change
 # ────────────────────────────────────────────────────────────
 FROM node:18-slim AS node-deps
@@ -55,7 +27,7 @@ RUN npm install --production --ignore-scripts \
 
 
 # ────────────────────────────────────────────────────────────
-# Stage 3: Production runtime
+# Stage 2: Production runtime
 # Combines PHP-FPM + Node.js + Nginx + Supervisor
 # ────────────────────────────────────────────────────────────
 FROM php:8.1-fpm-bullseye AS production
@@ -154,14 +126,10 @@ RUN ln -s /etc/nginx/sites-available/mpwa.conf /etc/nginx/sites-enabled/mpwa.con
 RUN mkdir -p /var/log/supervisor
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# ── Copy application code ──
-# Copy vendor from composer stage (PHP dependencies)
-COPY --from=composer-deps /app/vendor ./vendor
-
-# Copy node_modules from node stage (Node.js dependencies)
+# ── Copy node_modules from node stage (Node.js dependencies) ──
 COPY --from=node-deps /app/node_modules ./node_modules
 
-# Copy the rest of the application
+# ── Copy the entire application (including vendor/) ──
 COPY . .
 
 # ── Ensure directories exist ──
