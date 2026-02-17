@@ -79,6 +79,10 @@ GOOGLE_KEY=${GOOGLE_KEY:-}
 ENVEOF
 fi
 
+# Make .env writable by PHP-FPM (www-data)
+chown www-data:www-data "$APP_DIR/.env"
+chmod 664 "$APP_DIR/.env"
+
 # ──────────────────────────────────────────────
 # 3. Generate APP_KEY if not set
 # ──────────────────────────────────────────────
