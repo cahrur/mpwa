@@ -85,12 +85,12 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
     browser: ["Windows", "Chrome", release()],
     version,
     logger,
-   // printQRInTerminal: !viaOtp,
+    // printQRInTerminal: !viaOtp,
 
     auth: {
       creds: state.creds,
-     keys: makeCacheableSignalKeyStore(state.keys, logger),
-    
+      keys: makeCacheableSignalKeyStore(state.keys, logger),
+
     },
 
     msgRetryCounterCache,
@@ -166,6 +166,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
 
           if (ErrorMessage === "Connection was lost") {
             delete sock[token];
+            connectToWhatsApp(token, io);
           }
         } else {
           setStatus(token, "Disconnect");
@@ -181,7 +182,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
 
       if (qr) {
         // SEND TO YOUR CLIENT SIDE
-       
+
         QRCode.toDataURL(qr, function (err, url) {
           if (err) console.log(err);
           qrcode[token] = url;
@@ -212,11 +213,11 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
     }
 
     if (events["messages.upsert"]) {
-     
-      
-      const {messages,type} = events["messages.upsert"];
 
-      const reply = await IncomingMessage(messages,type, sock[token]);
+
+      const { messages, type } = events["messages.upsert"];
+
+      const reply = await IncomingMessage(messages, type, sock[token]);
     }
   });
 
@@ -261,7 +262,7 @@ async function connectWaBeforeSend(token) {
   let status = undefined;
   let connect;
   connect = await connectToWhatsApp(token);
-console.log(connect)
+  console.log(connect)
 
   await connect.sock.ev?.on("connection.update", (con) => {
     const { connection, qr } = con;
@@ -310,7 +311,7 @@ async function fetchGroups(token) {
     let groups = Object.entries(getGroups)
       .slice(0)
       .map((entry) => {
-    
+
         return entry[1];
       });
 
@@ -325,7 +326,7 @@ async function isExist(token, number) {
   try {
     if (typeof sock[token] === "undefined") {
       const status = await connectWaBeforeSend(token);
-      console.log('status',status)
+      console.log('status', status)
       if (!status) {
         return false;
       }
@@ -337,7 +338,7 @@ async function isExist(token, number) {
       return number.length > 11 ? result : true;
     }
   } catch (error) {
-      console.log(error)
+    console.log(error)
     return false;
   }
 }
@@ -422,10 +423,10 @@ function clearConnection(token) {
 }
 
 async function initialize(req, res) {
-    
+
   const { token } = req.body;
   if (token) {
-  
+
     const path = `./credentials/${token}`;
     if (fs.existsSync(path)) {
       sock[token] = undefined;

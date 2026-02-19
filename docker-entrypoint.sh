@@ -128,7 +128,28 @@ echo "=========================================="
 echo " Starting supervisord (PHP-FPM + Nginx + Node.js)"
 echo "=========================================="
 
-# Debug: print Laravel error log and test URL after 10 seconds
-(sleep 10 && echo "=== DEBUG: Laravel Log ===" && tail -50 /var/www/html/storage/logs/laravel.log 2>/dev/null && echo "=== DEBUG: Test Request ===" && curl -s -o /dev/null -w "HTTP Status: %{http_code}\n" http://127.0.0.1:8080/login && echo "=== DEBUG: Test Request Body ===" && curl -s http://127.0.0.1:8080/login 2>/dev/null | head -100) &
+# Auto-initialize WhatsApp sessions after Node.js starts
+(
+  echo "[auto-init] Waiting for Node.js to be ready..."
+  for i in $(seq 1 30); do
+    if curl -s -o /dev/null http://127.0.0.1:3100/ 2>/dev/null; then
+      echo "[auto-init] Node.js is ready"
+      break
+    fi
+    sleep 1
+  done
+
+  if [ -d "$APP_DIR/credentials" ]; then
+    for device_dir in "$APP_DIR/credentials"/*/; do
+      if [ -d "$device_dir" ]; then
+        device=$(basename "$device_dir")
+        echo "[auto-init] Restoring session for device: $device"
+        result=$(curl -s -X POST http://127.0.0.1:3100/backend-initialize -d "token=$device" 2>/dev/null)
+        echo "[auto-init] $device => $result"
+      fi
+    done
+  fi
+  echo "[auto-init] Done"
+) &
 
 exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
