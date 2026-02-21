@@ -20,7 +20,6 @@ const lastMessageMap = {}; // key: chatId, value: lastMessageId
 let isFirstConnect = true; // skip batch pertama pesan saat connect
 
 const IncomingMessage = async (msgBatch, type, sock) => {
-  console.log("[DEBUG-WH] IncomingMessage called, type:", type, "count:", msgBatch?.length);
   for (const received of msgBatch) {
     if (
       type !== "notify" ||

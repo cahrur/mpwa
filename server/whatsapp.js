@@ -144,30 +144,25 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
             delete qrcode[token];
             delete pairingCode[token];
             delete sock[token];
-            //   clearConnection(token);
             io?.emit("message", {
               token,
               message: "Request QR ended. reload web to scan again",
             });
             return;
           }
-          // ahwtsapp disconnect but still have session folder,should be delete
+          // whatsapp disconnect but still have session folder
           if (
             ErrorType === "Unauthorized" ||
             ErrorType === "Method Not Allowed"
           ) {
             setStatus(token, "Disconnect");
             clearConnection(token);
-            connectToWhatsApp(token, io);
-          }
-          if (ErrorMessage === "Stream Errored (restart required)") {
-            connectToWhatsApp(token, io);
           }
 
-          if (ErrorMessage === "Connection was lost") {
-            delete sock[token];
-            connectToWhatsApp(token, io);
-          }
+          // Auto-reconnect for ALL disconnect reasons
+          console.log("[WA] Connection closed, reason:", ErrorMessage || ErrorType || "unknown", "- reconnecting...");
+          delete sock[token];
+          connectToWhatsApp(token, io);
         } else {
           setStatus(token, "Disconnect");
           console.log("Connection closed. You are logged out.");
