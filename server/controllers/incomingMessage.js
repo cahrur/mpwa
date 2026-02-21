@@ -19,7 +19,8 @@ import { isJidNewsletter } from "baileys";
 const lastMessageMap = {}; // key: chatId, value: lastMessageId
 let isFirstConnect = true; // skip batch pertama pesan saat connect
 
-const IncomingMessage = async (msgBatch,type, sock) => {
+const IncomingMessage = async (msgBatch, type, sock) => {
+  console.log("[DEBUG-WH] IncomingMessage called, type:", type, "count:", msgBatch?.length);
   for (const received of msgBatch) {
     if (
       type !== "notify" ||
@@ -29,20 +30,20 @@ const IncomingMessage = async (msgBatch,type, sock) => {
     ) {
       return;
     }
- 
-   
-  
+
+
+
     if (received.key.remoteJid === "status@broadcast") return;
     const messageType = Object.keys(received.message)[0];
-   
+
     let msg = received;
 
-    if (msg.key.fromMe ||msg.key.remoteJid === "status@broadcast" ||isJidNewsletter(msg.key.remoteJid)) return;
+    if (msg.key.fromMe || msg.key.remoteJid === "status@broadcast" || isJidNewsletter(msg.key.remoteJid)) return;
 
     const senderName = msg?.pushName || "";
     const numberWa = sock.user.id.split(":")[0];
     const { command, media, from } = await parseIncomingMessage(msg, sock);
-  
+
     const participant = msg.key.participant;
     const device = await getDevice(numberWa);
     let quoted = false;
@@ -64,7 +65,7 @@ const IncomingMessage = async (msgBatch,type, sock) => {
     };
 
 
-    
+
     // === PARALLEL PROMISES ===
     const webhookPromise = (async () => {
       const url = await getUrlWebhook(numberWa);
@@ -168,14 +169,14 @@ const IncomingMessage = async (msgBatch,type, sock) => {
         return await handleTextReply(reply, sock, msg, quoted);
       }
     }
-   
+
   }
 
   // try {
   //   if (!msgBatch || !msgBatch.messages || msgBatch.messages.length === 0)
   //     return;
 
-    
+
   //   let msg = msgBatch.messages[0];
   //   if (!msg || !msg.message) return;
 
@@ -230,7 +231,7 @@ const IncomingMessage = async (msgBatch,type, sock) => {
   //   };
 
 
-    
+
   //   // === PARALLEL PROMISES ===
   //   const webhookPromise = (async () => {
   //     const url = await getUrlWebhook(numberWa);
