@@ -81,16 +81,21 @@ function extractNumber(msg) {
   const jid = msg.key.remoteJid || "";
   const jidAlt = msg.key.remoteJidAlt || "";
 
-  // Regex: hanya ambil angka sebelum @
+  // Group: return full group JID
+  if (jid.endsWith("@g.us")) {
+    return jid;
+  }
+
+  // Personal: hanya ambil angka sebelum @
   const regex = /^(\d+)@s\.whatsapp\.net$/;
 
   if (regex.test(jid)) {
-    return jid.split("@")[0]; // remoteJid valid
+    return jid.split("@")[0];
   } else if (regex.test(jidAlt)) {
-    return jidAlt.split("@")[0]; // remoteJidAlt valid
+    return jidAlt.split("@")[0];
   }
 
-  return null; // tidak ditemukan nomor WA
+  return null;
 }
 
 async function parseIncomingMessage(msg, sock) {
@@ -100,21 +105,21 @@ async function parseIncomingMessage(msg, sock) {
     type === "conversation" && msg.message.conversation
       ? msg.message.conversation
       : type == "imageMessage" && msg.message.imageMessage.caption
-      ? msg.message.imageMessage.caption
-      : type == "videoMessage" && msg.message.videoMessage.caption
-      ? msg.message.videoMessage.caption
-      : type == "extendedTextMessage" && msg.message.extendedTextMessage.text
-      ? msg.message.extendedTextMessage.text
-      : type == "messageContextInfo" && msg.message.listResponseMessage?.title
-      ? msg.message.listResponseMessage.title
-      : type == "messageContextInfo"
-      ? msg?.message?.buttonsResponseMessage?.selectedDisplayText
-      : type == "templateMessage" &&
-        msg.message.templateMessage.hydratedTemplate.hydratedContentText
-      ? msg.message.templateMessage.hydratedTemplate.hydratedContentText
-      : msg.message?.templateButtonReplyMessage?.selectedDisplayText
-      ? msg.message?.templateButtonReplyMessage?.selectedDisplayText
-      : "";
+        ? msg.message.imageMessage.caption
+        : type == "videoMessage" && msg.message.videoMessage.caption
+          ? msg.message.videoMessage.caption
+          : type == "extendedTextMessage" && msg.message.extendedTextMessage.text
+            ? msg.message.extendedTextMessage.text
+            : type == "messageContextInfo" && msg.message.listResponseMessage?.title
+              ? msg.message.listResponseMessage.title
+              : type == "messageContextInfo"
+                ? msg?.message?.buttonsResponseMessage?.selectedDisplayText
+                : type == "templateMessage" &&
+                  msg.message.templateMessage.hydratedTemplate.hydratedContentText
+                  ? msg.message.templateMessage.hydratedTemplate.hydratedContentText
+                  : msg.message?.templateButtonReplyMessage?.selectedDisplayText
+                    ? msg.message?.templateButtonReplyMessage?.selectedDisplayText
+                    : "";
 
   const from = extractNumber(msg);
   const media = await getMediaMessage(msg, false, sock);
