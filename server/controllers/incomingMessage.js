@@ -79,9 +79,17 @@ const IncomingMessage = async (msgBatch, type, sock) => {
         const msgContent = msg.message || {};
         const msgType = Object.keys(msgContent)[0];
         const mentionedJids = msgContent[msgType]?.contextInfo?.mentionedJid || [];
+
+        // Cek kedua format: nomor telefon dan LID
         const deviceJid = numberWa + "@s.whatsapp.net";
-        console.log("[WH-GROUP] mentions:", mentionedJids, "looking for:", deviceJid);
-        if (!mentionedJids.includes(deviceJid)) return null;
+        const deviceLid = sock?.user?.lid?.split(":")[0];
+        const isMentioned = mentionedJids.some(jid =>
+          jid === deviceJid ||
+          jid.includes(numberWa) ||
+          (deviceLid && jid.includes(deviceLid))
+        );
+        console.log("[WH-GROUP] mentions:", mentionedJids, "deviceJid:", deviceJid, "deviceLid:", deviceLid, "matched:", isMentioned);
+        if (!isMentioned) return null;
       }
 
       const ppUrl = await getPpUrlFromSock(sock, msg);
