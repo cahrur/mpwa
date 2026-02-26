@@ -73,13 +73,7 @@
     if (!is_expired_subscription) {
         let socket;
         let device = '{{ $number->body }}';
-        if ('{{ env('TYPE_SERVER') }}' === 'hosting') {
-            socket = io();
-        } else {
-            socket = io('{{ env('WA_URL_SERVER') }}', {
-                transports: ['websocket', 'polling', 'flashsocket']
-            });
-        }
+        socket = io();
 
         socket.emit('StartConnection', '{{ $number->body }}')
         socket.on('qrcode', ({ token, data, message }) => {

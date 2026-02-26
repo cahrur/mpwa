@@ -445,6 +445,23 @@ async function initialize(req, res) {
   return res.send({ status: false, message: "Wrong Parameterss" });
 }
 
+// Periodic health check - reconnect dead sockets every 5 minutes
+const HEALTH_CHECK_INTERVAL = 5 * 60 * 1000;
+setInterval(async () => {
+  for (const token of Object.keys(sock)) {
+    try {
+      const s = sock[token];
+      if (!s || !s.ws || s.ws.readyState !== 1) {
+        console.log("[WA-HEALTH] Socket dead for", token, "- reconnecting...");
+        delete sock[token];
+        await connectToWhatsApp(token);
+      }
+    } catch (err) {
+      console.log("[WA-HEALTH] Error checking", token, ":", err.message);
+    }
+  }
+}, HEALTH_CHECK_INTERVAL);
+
 // delay send message
 
 export * from "./wa/sender.js";

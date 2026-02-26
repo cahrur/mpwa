@@ -31,11 +31,9 @@
                                 <div class="imageee text-center">
                                     @if (Auth::user()->is_expired_subscription)
                                         {{-- text --}}
-                                        <img src="{{ asset('images/other/expired.png') }}" height="300px"
-                                            alt="">
+                                        <img src="{{ asset('images/other/expired.png') }}" height="300px" alt="">
                                     @else
-                                        <img src="{{ asset('assets/images/waiting.jpg') }}" height="300px"
-                                            alt="">
+                                        <img src="{{ asset('assets/images/waiting.jpg') }}" height="300px" alt="">
                                     @endif
                                 </div>
                                 <div class="statusss text-center">
@@ -87,20 +85,14 @@
 </x-layout-dashboard>
 <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"
     integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+" crossorigin="anonymous">
-</script>
+    </script>
 <script>
     // if subscription not expired
     const is_expired_subscription = '{{ Auth::user()->is_expired_subscription }}';
     if (!is_expired_subscription) {
         let socket;
         let device = '{{ $number->body }}';
-        if ('{{ env('TYPE_SERVER') }}' === 'hosting') {
-            socket = io();
-        } else {
-            socket = io('{{ env('WA_URL_SERVER') }}', {
-                transports: ['websocket', 'polling', 'flashsocket']
-            });
-        }
+        socket = io();
 
 
         socket.emit('ConnectViaCode', '{{ $number->body }}')
