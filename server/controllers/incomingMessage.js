@@ -40,6 +40,7 @@ const IncomingMessage = async (msgBatch, type, sock) => {
     if (msg.key.fromMe || msg.key.remoteJid === "status@broadcast" || isJidNewsletter(msg.key.remoteJid)) return;
 
     const senderName = msg?.pushName || "";
+    if (!sock?.user?.id) return;
     const numberWa = sock.user.id.split(":")[0];
     const { command, media, from } = await parseIncomingMessage(msg, sock);
 
@@ -48,7 +49,7 @@ const IncomingMessage = async (msgBatch, type, sock) => {
     let quoted = false;
 
     if (device.length > 0 && device[0].wh_read === 1) {
-      sock.readMessages([msg.key]);
+      try { sock.readMessages([msg.key]); } catch (e) { }
     }
 
     const pluginContext = {

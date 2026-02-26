@@ -140,7 +140,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
           io?.emit("message", { token: token, message: "Connecting.." });
           // when refs qr attemts end
           if (ErrorMessage == "QR refs attempts ended") {
-            sock[token].ws.close();
+            try { sock[token]?.ws?.close(); } catch (e) { }
             delete qrcode[token];
             delete pairingCode[token];
             delete sock[token];
@@ -188,6 +188,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
         setStatus(token, "Connected");
         delete qrcode[token];
         delete pairingCode[token];
+        if (!sock[token]?.user?.id) return;
         let number = sock[token].user.id.split(":");
         number = number[0] + "@s.whatsapp.net";
         const ppUrl = await getPpUrl(token, number);
@@ -208,42 +209,49 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
     }
 
     if (events["messages.upsert"]) {
-
-
-      const { messages, type } = events["messages.upsert"];
-
-      const reply = await IncomingMessage(messages, type, sock[token]);
+      try {
+        const { messages, type } = events["messages.upsert"];
+        await IncomingMessage(messages, type, sock[token]);
+      } catch (err) {
+        console.log("[WA] IncomingMessage error:", err.message);
+      }
     }
   });
 
   sock[token].ev?.on("call", async (node) => {
-    const getDeviceWa = await getDevice(sock[token].user.id.split(":")[0]);
-    const reject_call = getDeviceWa[0].reject_call;
+    try {
+      if (!sock[token]?.user?.id) return;
+      const getDeviceWa = await getDevice(sock[token].user.id.split(":")[0]);
+      if (!getDeviceWa?.length) return;
+      const reject_call = getDeviceWa[0].reject_call;
 
-    if (reject_call === 1) {
-      const { from, id, status } = node[0];
-      if (status == "offer") {
-        const sendresult = {
-          tag: "call",
-          attrs: {
-            from: sock[token].user.id,
-            to: from,
-            id: sock[token].generateMessageTag(),
-          },
-          content: [
-            {
-              tag: "reject",
-              attrs: {
-                "call-id": id,
-                "call-creator": from,
-                count: "0",
-              },
-              content: undefined,
+      if (reject_call === 1) {
+        const { from, id, status } = node[0];
+        if (status == "offer") {
+          const sendresult = {
+            tag: "call",
+            attrs: {
+              from: sock[token].user.id,
+              to: from,
+              id: sock[token].generateMessageTag(),
             },
-          ],
-        };
-        await sock[token].query(sendresult);
+            content: [
+              {
+                tag: "reject",
+                attrs: {
+                  "call-id": id,
+                  "call-creator": from,
+                  count: "0",
+                },
+                content: undefined,
+              },
+            ],
+          };
+          await sock[token].query(sendresult);
+        }
       }
+    } catch (err) {
+      console.log("[WA] Call handler error:", err.message);
     }
   });
 
@@ -259,15 +267,17 @@ async function connectWaBeforeSend(token) {
   connect = await connectToWhatsApp(token);
   console.log(connect)
 
-  await connect.sock.ev?.on("connection.update", (con) => {
-    const { connection, qr } = con;
-    if (connection === "open") {
-      status = true;
-    }
-    if (qr) {
-      status = false;
-    }
-  });
+  try {
+    connect?.sock?.ev?.on("connection.update", (con) => {
+      const { connection, qr } = con;
+      if (connection === "open") {
+        status = true;
+      }
+      if (qr) {
+        status = false;
+      }
+    });
+  } catch (e) { }
   let counter = 0;
   while (typeof status === "undefined") {
     counter++;
@@ -286,6 +296,7 @@ const sendAvailable = async (body) => {
 
   let sendAvailableResult;
   try {
+    if (!getDeviceAll?.length) return false;
     if (getDeviceAll[0].set_available == 1) {
       sendAvailableResult = await sock[body].sendPresenceUpdate("available");
     } else {
@@ -451,10 +462,14 @@ setInterval(async () => {
   for (const token of Object.keys(sock)) {
     try {
       const s = sock[token];
-      if (!s || !s.ws || s.ws.readyState !== 1) {
-        console.log("[WA-HEALTH] Socket dead for", token, "- reconnecting...");
-        delete sock[token];
-        await connectToWhatsApp(token);
+      // Only reconnect if socket is completely gone or WebSocket is CLOSED (readyState=3)
+      // Don't touch sockets that are CONNECTING (0) or CLOSING (2)
+      if (!s || !s.ws || s.ws.readyState === 3) {
+        console.log("[WA-HEALTH] Socket dead for", token, "(state:", s?.ws?.readyState, ") - reconnecting...");
+        sock[token] = undefined;
+        connectToWhatsApp(token).catch(err => {
+          console.log("[WA-HEALTH] Reconnect failed for", token, ":", err.message);
+        });
       }
     } catch (err) {
       console.log("[WA-HEALTH] Error checking", token, ":", err.message);
