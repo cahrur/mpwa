@@ -72,6 +72,14 @@ const IncomingMessage = async (msgBatch, type, sock) => {
 
       if (!url) return null;
 
+      // Grup: hanya kirim webhook jika mention nomor device
+      const isGroup = msg.key.remoteJid?.endsWith("@g.us");
+      if (isGroup) {
+        const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+        const deviceJid = numberWa + "@s.whatsapp.net";
+        if (!mentionedJids.includes(deviceJid)) return null;
+      }
+
       const ppUrl = await getPpUrlFromSock(sock, msg);
 
       const response = await sendWebhook({
