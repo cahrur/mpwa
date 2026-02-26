@@ -75,8 +75,12 @@ const IncomingMessage = async (msgBatch, type, sock) => {
       // Grup: hanya kirim webhook jika mention nomor device
       const isGroup = msg.key.remoteJid?.endsWith("@g.us");
       if (isGroup) {
-        const mentionedJids = msg.message?.extendedTextMessage?.contextInfo?.mentionedJid || [];
+        // Cek mentionedJid di semua tipe pesan
+        const msgContent = msg.message || {};
+        const msgType = Object.keys(msgContent)[0];
+        const mentionedJids = msgContent[msgType]?.contextInfo?.mentionedJid || [];
         const deviceJid = numberWa + "@s.whatsapp.net";
+        console.log("[WH-GROUP] mentions:", mentionedJids, "looking for:", deviceJid);
         if (!mentionedJids.includes(deviceJid)) return null;
       }
 
