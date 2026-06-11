@@ -48,25 +48,46 @@ const IncomingMessage = async (msgBatch, type, sock) => {
     const device = await getDevice(numberWa);
     let quoted = false;
 
-    // Strip mention (@628xxx) dari command untuk pesan grup
-    if (msg.key.remoteJid?.endsWith("@g.us") && command) {
-      command = command.replace(/@\d+\s*/g, "").trim();
-    }
+    const isGroup = msg.key.remoteJid?.endsWith("@g.us");
 
     // Grup: hanya proses jika bot di-mention
-    const isGroup = msg.key.remoteJid?.endsWith("@g.us");
     if (isGroup) {
       const msgContent = msg.message || {};
-      const msgType = Object.keys(msgContent)[0];
-      const mentionedJids = msgContent[msgType]?.contextInfo?.mentionedJid || [];
       const deviceJid = numberWa + "@s.whatsapp.net";
       const deviceLid = sock?.user?.lid?.split(":")[0];
-      const isMentioned = mentionedJids.some(jid =>
+
+      // Cek mentionedJid dari semua layer (handle reply/quote & ephemeral)
+      const allContextInfos = [];
+      const collectContextInfo = (obj) => {
+        if (!obj || typeof obj !== "object") return;
+        if (obj.contextInfo) allContextInfos.push(obj.contextInfo);
+        for (const val of Object.values(obj)) collectContextInfo(val);
+      };
+      collectContextInfo(msgContent);
+
+      const mentionedJids = allContextInfos.flatMap(ci => ci.mentionedJid || []);
+
+      const isMentionedViaJid = mentionedJids.some(jid =>
         jid === deviceJid ||
         jid.includes(numberWa) ||
         (deviceLid && jid.includes(deviceLid))
       );
-      if (!isMentioned) continue;
+
+      // Fallback: cek teks pesan langsung mengandung @nomor bot
+      const rawText = command || "";
+      const shortNumber = numberWa.startsWith("62") ? "0" + numberWa.slice(2) : "";
+      const isMentionedInText =
+        rawText.includes("@" + numberWa) ||
+        (shortNumber && rawText.includes("@" + shortNumber));
+
+      console.log("[GROUP-MENTION] jids:", mentionedJids, "viaJid:", isMentionedViaJid, "viaText:", isMentionedInText);
+
+      if (!isMentionedViaJid && !isMentionedInText) continue;
+    }
+
+    // Strip mention (@628xxx) dari command untuk pesan grup
+    if (isGroup && command) {
+      command = command.replace(/@\d+\s*/g, "").trim();
     }
 
     if (device.length > 0 && device[0].wh_read === 1) {
