@@ -88,13 +88,19 @@ const IncomingMessage = async (msgBatch, type, sock) => {
         rawText.includes("@" + noCountry) ||
         (withZero && rawText.includes("@" + withZero));
 
-      // Fallback terakhir: ada karakter @ apapun di awal atau akhir pesan
-      // (WA kadang simpan display name "@~Jogo Jatim" bukan nomor)
+      // Fallback: ada @mention di posisi manapun dalam teks
       const isMentionedByAt = /^@\S+\s|^@\S+$|\s@\S+$/.test(rawText);
 
-      console.log("[GROUP-MENTION] type:", msgType, "jids:", mentionedJids, "deviceLid:", deviceLid, "viaJid:", isMentionedViaJid, "viaText:", isMentionedInText, "viaAt:", isMentionedByAt, "raw:", rawText?.slice(0, 80));
+      // Cek apakah pesan ini adalah reply (quote) ke pesan bot
+      const quotedParticipant = contextInfos[0]?.participant || "";
+      const isQuoteOfBot =
+        quotedParticipant === deviceJid ||
+        quotedParticipant.includes(numberWa) ||
+        (deviceLid && quotedParticipant.includes(deviceLid));
 
-      if (!isMentionedViaJid && !isMentionedInText && !isMentionedByAt) continue;
+      console.log("[GROUP-MENTION] type:", msgType, "jids:", mentionedJids, "viaJid:", isMentionedViaJid, "viaText:", isMentionedInText, "viaAt:", isMentionedByAt, "isQuoteOfBot:", isQuoteOfBot, "raw:", rawText?.slice(0, 60));
+
+      if (!isMentionedViaJid && !isMentionedInText && !isMentionedByAt && !isQuoteOfBot) continue;
     }
 
     // Simpan command asli untuk webhook, stripped untuk auto-reply & plugin
@@ -142,7 +148,7 @@ const IncomingMessage = async (msgBatch, type, sock) => {
           "";
       }
 
-      // Kirim teks asli (belum di-strip) + flag botMentioned + quotedMsg ke webhook
+      // Kirim teks asli + flag botMentioned + quotedMsg ke webhook
       const response = await sendWebhook({
         device: numberWa,
         command: commandRaw,
@@ -152,7 +158,7 @@ const IncomingMessage = async (msgBatch, type, sock) => {
         url,
         participant,
         ppUrl,
-        botMentioned: isGroup,
+        botMentioned: isGroup,  // sudah lolos filter MPWA
         quotedMsg: quotedText || undefined,
       });
 
