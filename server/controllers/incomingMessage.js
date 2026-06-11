@@ -97,7 +97,8 @@ const IncomingMessage = async (msgBatch, type, sock) => {
       if (!isMentionedViaJid && !isMentionedInText && !isMentionedByAt) continue;
     }
 
-    // Strip mention (@apapun) dari command untuk pesan grup
+    // Simpan command asli untuk webhook, stripped untuk auto-reply & plugin
+    const commandRaw = command;
     if (isGroup && command) {
       command = command.replace(/@\S+\s*/g, "").trim();
     }
@@ -128,9 +129,10 @@ const IncomingMessage = async (msgBatch, type, sock) => {
 
       const ppUrl = await getPpUrlFromSock(sock, msg);
 
+      // Kirim teks asli (belum di-strip) ke webhook agar sigap bisa deteksi mention
       const response = await sendWebhook({
         device: numberWa,
-        command,
+        command: commandRaw,
         media,
         from,
         name: senderName,
