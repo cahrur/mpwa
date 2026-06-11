@@ -74,4 +74,23 @@ io.on("connection", (socket) => {
 
 server.listen(port, () => {
   console.log(`Server running and listening on port: ${port}`);
+  // Auto-reconnect semua device yang statusnya Connected di DB setelah startup
+  setTimeout(async () => {
+    try {
+      const { dbQuery } = await import("./server/database/index.js");
+      const devices = await dbQuery(`SELECT body FROM devices WHERE status = 'Connected'`);
+      if (devices.length) {
+        console.log(`[STARTUP] Auto-reconnect ${devices.length} device(s):`, devices.map(d => d.body));
+        for (const device of devices) {
+          try {
+            await wa.connectToWhatsApp(String(device.body));
+          } catch (e) {
+            console.log(`[STARTUP] Failed to reconnect ${device.body}:`, e.message);
+          }
+        }
+      }
+    } catch (e) {
+      console.log("[STARTUP] Auto-reconnect error:", e.message);
+    }
+  }, 3000);
 });
