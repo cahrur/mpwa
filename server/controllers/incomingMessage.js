@@ -42,11 +42,32 @@ const IncomingMessage = async (msgBatch, type, sock) => {
     const senderName = msg?.pushName || "";
     if (!sock?.user?.id) return;
     const numberWa = sock.user.id.split(":")[0];
-    const { command, media, from } = await parseIncomingMessage(msg, sock);
+    let { command, media, from } = await parseIncomingMessage(msg, sock);
 
     const participant = msg.key.participant;
     const device = await getDevice(numberWa);
     let quoted = false;
+
+    // Strip mention (@628xxx) dari command untuk pesan grup
+    if (msg.key.remoteJid?.endsWith("@g.us") && command) {
+      command = command.replace(/@\d+\s*/g, "").trim();
+    }
+
+    // Grup: hanya proses jika bot di-mention
+    const isGroup = msg.key.remoteJid?.endsWith("@g.us");
+    if (isGroup) {
+      const msgContent = msg.message || {};
+      const msgType = Object.keys(msgContent)[0];
+      const mentionedJids = msgContent[msgType]?.contextInfo?.mentionedJid || [];
+      const deviceJid = numberWa + "@s.whatsapp.net";
+      const deviceLid = sock?.user?.lid?.split(":")[0];
+      const isMentioned = mentionedJids.some(jid =>
+        jid === deviceJid ||
+        jid.includes(numberWa) ||
+        (deviceLid && jid.includes(deviceLid))
+      );
+      if (!isMentioned) continue;
+    }
 
     if (device.length > 0 && device[0].wh_read === 1) {
       try { sock.readMessages([msg.key]); } catch (e) { }
@@ -71,26 +92,6 @@ const IncomingMessage = async (msgBatch, type, sock) => {
       const url = await getUrlWebhook(numberWa);
 
       if (!url) return null;
-
-      // Grup: hanya kirim webhook jika mention nomor device
-      const isGroup = msg.key.remoteJid?.endsWith("@g.us");
-      if (isGroup) {
-        // Cek mentionedJid di semua tipe pesan
-        const msgContent = msg.message || {};
-        const msgType = Object.keys(msgContent)[0];
-        const mentionedJids = msgContent[msgType]?.contextInfo?.mentionedJid || [];
-
-        // Cek kedua format: nomor telefon dan LID
-        const deviceJid = numberWa + "@s.whatsapp.net";
-        const deviceLid = sock?.user?.lid?.split(":")[0];
-        const isMentioned = mentionedJids.some(jid =>
-          jid === deviceJid ||
-          jid.includes(numberWa) ||
-          (deviceLid && jid.includes(deviceLid))
-        );
-        console.log("[WH-GROUP] mentions:", mentionedJids, "deviceJid:", deviceJid, "deviceLid:", deviceLid, "matched:", isMentioned);
-        if (!isMentioned) return null;
-      }
 
       const ppUrl = await getPpUrlFromSock(sock, msg);
 
