@@ -5,8 +5,18 @@ import { Button, formatButtonMsg } from "../dto/button.js";
 import { ulid } from "ulid";
 import { Section, formatListMsg } from "../dto/list.js";
 
+// Cek apakah socket siap untuk mengirim pesan
+const isSockReady = (token) => {
+  const s = sock[token];
+  return s && s.ws && s.ws.readyState === 1;
+};
+
 // text message
 const sendText = async (token, number, text, delay = 0) => {
+  if (!isSockReady(token)) {
+    console.log(`[sendText] sock[${token}] not ready (state: ${sock[token]?.ws?.readyState ?? "undefined"})`);
+    return false;
+  }
   try {
     await delayMsg(delay * 1000, sock[token], number);
     const sendingTextMessage = await sock[token].sendMessage(
@@ -22,6 +32,10 @@ const sendText = async (token, number, text, delay = 0) => {
   }
 };
 const sendMessage = async (token, number, msg, delay = 0) => {
+  if (!isSockReady(token)) {
+    console.log(`[sendMessage] sock[${token}] not ready`);
+    return false;
+  }
   try {
     await delayMsg(delay * 1000, sock[token], number);
     const sendingTextMessage = await sock[token].sendMessage(
@@ -44,6 +58,10 @@ async function sendMedia(
   filename,
   delay = 0
 ) {
+  if (!isSockReady(token)) {
+    console.log(`[sendMedia] sock[${token}] not ready`);
+    return false;
+  }
   const number = formatReceipt(destination);
   let ownerJid = sock[token].user.id.replace(/:\d+/, "");
 

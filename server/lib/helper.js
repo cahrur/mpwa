@@ -347,15 +347,16 @@ const createJid = (number) => {
 };
 
 async function delayMsg(delay, sock, recipient, typing = false) {
-  const jid = createJid(recipient);
-  await sock.presenceSubscribe(recipient);
-  if (typing) {
-    await sock.sendPresenceUpdate("composing", jid);
+  // Hanya jalankan presence jika socket aktif dan ada delay/typing
+  const sockReady = sock && sock.ws && sock.ws.readyState === 1;
+  if (sockReady && (delay > 0 || typing)) {
+    const jid = createJid(recipient);
+    try { await sock.presenceSubscribe(recipient); } catch (_) {}
+    if (typing) {
+      try { await sock.sendPresenceUpdate("composing", jid); } catch (_) {}
+    }
   }
-  await delayin(delay);
-  if (typing) {
-    // await sock.sendPresenceUpdate("paused", recipient);
-  }
+  if (delay > 0) await delayin(delay);
 }
 
 export {
