@@ -129,7 +129,20 @@ const IncomingMessage = async (msgBatch, type, sock) => {
 
       const ppUrl = await getPpUrlFromSock(sock, msg);
 
-      // Kirim teks asli (belum di-strip) ke webhook agar sigap bisa deteksi mention
+      // Ekstrak quoted message text jika pesan adalah reply
+      const msgContent2 = msg.message || {};
+      const msgType2 = Object.keys(msgContent2)[0] || "";
+      const quotedMsg = msgContent2[msgType2]?.contextInfo?.quotedMessage;
+      let quotedText = "";
+      if (quotedMsg) {
+        quotedText =
+          quotedMsg.conversation ||
+          quotedMsg.extendedTextMessage?.text ||
+          quotedMsg.imageMessage?.caption ||
+          "";
+      }
+
+      // Kirim teks asli (belum di-strip) + flag botMentioned + quotedMsg ke webhook
       const response = await sendWebhook({
         device: numberWa,
         command: commandRaw,
@@ -139,6 +152,8 @@ const IncomingMessage = async (msgBatch, type, sock) => {
         url,
         participant,
         ppUrl,
+        botMentioned: isGroup,
+        quotedMsg: quotedText || undefined,
       });
 
 

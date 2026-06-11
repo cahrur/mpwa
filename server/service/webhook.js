@@ -9,6 +9,8 @@ export const sendWebhook = async ({
   url,
   participant,
   ppUrl,
+  botMentioned,
+  quotedMsg,
 }) => {
   try {
     const data = {
@@ -19,6 +21,8 @@ export const sendWebhook = async ({
       name,
       participant,
       ppUrl,
+      ...(botMentioned !== undefined && { botMentioned }),
+      ...(quotedMsg && { quotedMsg }),
     };
    
 
