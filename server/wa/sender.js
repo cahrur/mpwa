@@ -8,7 +8,12 @@ import { Section, formatListMsg } from "../dto/list.js";
 // Cek apakah socket siap untuk mengirim pesan
 const isSockReady = (token) => {
   const s = sock[token];
-  return s && s.ws && s.ws.readyState === 1;
+  if (!s) return false;
+  // Cara paling reliable: cek apakah sudah authenticated (user.id ada)
+  if (s.user?.id) return true;
+  // Fallback: cek ws state (1 = OPEN)
+  if (s.ws && s.ws.readyState === 1) return true;
+  return false;
 };
 
 // text message
