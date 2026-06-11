@@ -53,19 +53,24 @@ const IncomingMessage = async (msgBatch, type, sock) => {
     // Grup: hanya proses jika bot di-mention
     if (isGroup) {
       const msgContent = msg.message || {};
+      const msgType = Object.keys(msgContent)[0] || "";
       const deviceJid = numberWa + "@s.whatsapp.net";
       const deviceLid = sock?.user?.lid?.split(":")[0];
 
-      // Cek mentionedJid dari semua layer (handle reply/quote & ephemeral)
-      const allContextInfos = [];
-      const collectContextInfo = (obj) => {
-        if (!obj || typeof obj !== "object") return;
-        if (obj.contextInfo) allContextInfos.push(obj.contextInfo);
-        for (const val of Object.values(obj)) collectContextInfo(val);
-      };
-      collectContextInfo(msgContent);
+      // Ambil contextInfo dari layer pertama dan layer nested
+      const contextInfos = [];
+      const topContent = msgContent[msgType];
+      if (topContent?.contextInfo) contextInfos.push(topContent.contextInfo);
+      // Handle ephemeral/viewOnce/documentWithCaption
+      const innerMsg = topContent?.message;
+      if (innerMsg) {
+        const innerType = Object.keys(innerMsg)[0];
+        if (innerType && innerMsg[innerType]?.contextInfo) {
+          contextInfos.push(innerMsg[innerType].contextInfo);
+        }
+      }
 
-      const mentionedJids = allContextInfos.flatMap(ci => ci.mentionedJid || []);
+      const mentionedJids = contextInfos.flatMap(ci => ci.mentionedJid || []);
 
       const isMentionedViaJid = mentionedJids.some(jid =>
         jid === deviceJid ||
@@ -74,23 +79,27 @@ const IncomingMessage = async (msgBatch, type, sock) => {
       );
 
       // Fallback: cek teks pesan langsung mengandung @nomor bot
-      // WA menyimpan mention sebagai @85178969047 (tanpa prefix 62/0)
+      // WA bisa menyimpan mention sebagai @85xxx, @62xxx, atau @0xxx
       const rawText = command || "";
       const noCountry = numberWa.startsWith("62") ? numberWa.slice(2) : numberWa;
       const withZero = numberWa.startsWith("62") ? "0" + numberWa.slice(2) : "";
       const isMentionedInText =
-        rawText.includes("@" + numberWa) ||       // @6285178969047
-        rawText.includes("@" + noCountry) ||       // @85178969047
-        (withZero && rawText.includes("@" + withZero)); // @085178969047
+        rawText.includes("@" + numberWa) ||
+        rawText.includes("@" + noCountry) ||
+        (withZero && rawText.includes("@" + withZero));
 
-      console.log("[GROUP-MENTION] jids:", mentionedJids, "viaJid:", isMentionedViaJid, "viaText:", isMentionedInText);
+      // Fallback terakhir: ada karakter @ apapun di awal atau akhir pesan
+      // (WA kadang simpan display name "@~Jogo Jatim" bukan nomor)
+      const isMentionedByAt = /^@\S+\s|^@\S+$|\s@\S+$/.test(rawText);
 
-      if (!isMentionedViaJid && !isMentionedInText) continue;
+      console.log("[GROUP-MENTION] type:", msgType, "jids:", mentionedJids, "deviceLid:", deviceLid, "viaJid:", isMentionedViaJid, "viaText:", isMentionedInText, "viaAt:", isMentionedByAt, "raw:", rawText?.slice(0, 80));
+
+      if (!isMentionedViaJid && !isMentionedInText && !isMentionedByAt) continue;
     }
 
-    // Strip mention (@628xxx) dari command untuk pesan grup
+    // Strip mention (@apapun) dari command untuk pesan grup
     if (isGroup && command) {
-      command = command.replace(/@\d+\s*/g, "").trim();
+      command = command.replace(/@\S+\s*/g, "").trim();
     }
 
     if (device.length > 0 && device[0].wh_read === 1) {
