@@ -26,11 +26,7 @@ const msgRetryCounterCache = new NodeCache();
 const connectingLock = {};
 
 const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
-  // Jika sedang connecting, jangan buat socket baru
-  if (connectingLock[token]) {
-    console.log(`[WA] connectToWhatsApp skipped for ${token} — already connecting`);
-    return { status: false, message: "already connecting" };
-  }
+  // Jika QR sudah ada, emit ulang tanpa buat socket baru
   if (typeof qrcode[token] !== "undefined" && !viaOtp) {
     io?.emit("qrcode", {
       token,
@@ -75,6 +71,11 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
       token,
       message: `Connecting.. (1)..`,
     });
+  }
+  // Jika sedang connecting (lock aktif), blokir pembuatan socket baru
+  if (connectingLock[token]) {
+    console.log(`[WA] connectToWhatsApp skipped for ${token} — already connecting`);
+    return { status: false, message: "already connecting" };
   }
   // Set lock — hanya satu proses connect per token
   connectingLock[token] = true;
@@ -390,6 +391,8 @@ async function deleteCredentials(token, io = null) {
       delete sock[token];
     }
     delete qrcode[token];
+    delete pairingCode[token];
+    delete connectingLock[token]; // Force clear lock agar bisa connect ulang
     clearInterval(intervalStore[token]);
     setStatus(token, "Disconnect");
 
@@ -428,6 +431,7 @@ function clearConnection(token) {
 
   delete sock[token];
   delete qrcode[token];
+  delete connectingLock[token];
   setStatus(token, "Disconnect");
   if (fs.existsSync(`./credentials/${token}`)) {
     fs.rmSync(
