@@ -22,7 +22,15 @@ import { release } from "os";
 const logger = MAIN_LOGGER.child({});
 const msgRetryCounterCache = new NodeCache();
 
+// Lock agar tidak ada dua connectToWhatsApp berjalan bersamaan untuk token yang sama
+const connectingLock = {};
+
 const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
+  // Jika sedang connecting, jangan buat socket baru
+  if (connectingLock[token]) {
+    console.log(`[WA] connectToWhatsApp skipped for ${token} — already connecting`);
+    return { status: false, message: "already connecting" };
+  }
   if (typeof qrcode[token] !== "undefined" && !viaOtp) {
     io?.emit("qrcode", {
       token,
@@ -68,7 +76,8 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
       message: `Connecting.. (1)..`,
     });
   }
-  //
+  // Set lock — hanya satu proses connect per token
+  connectingLock[token] = true;
 
   const { version, isLatest } = await fetchLatestBaileysVersion();
   console.log(
@@ -144,6 +153,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
             delete qrcode[token];
             delete pairingCode[token];
             delete sock[token];
+            delete connectingLock[token];
             io?.emit("message", {
               token,
               message: "Request QR ended. reload web to scan again",
@@ -162,6 +172,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
           // Auto-reconnect for ALL disconnect reasons
           console.log("[WA] Connection closed, reason:", ErrorMessage || ErrorType || "unknown", "- reconnecting...");
           delete sock[token];
+          delete connectingLock[token];
           connectToWhatsApp(token, io);
         } else {
           setStatus(token, "Disconnect");
@@ -171,6 +182,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
             message: "Connection closed. You are logged out.",
           });
           clearConnection(token);
+          delete connectingLock[token];
           connectToWhatsApp(token, io);
         }
       }
@@ -188,6 +200,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
         setStatus(token, "Connected");
         delete qrcode[token];
         delete pairingCode[token];
+        delete connectingLock[token]; // Release lock — connected
         if (!sock[token]?.user?.id) return;
         let number = sock[token].user.id.split(":");
         number = number[0] + "@s.whatsapp.net";
