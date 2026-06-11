@@ -74,11 +74,14 @@ const IncomingMessage = async (msgBatch, type, sock) => {
       );
 
       // Fallback: cek teks pesan langsung mengandung @nomor bot
+      // WA menyimpan mention sebagai @85178969047 (tanpa prefix 62/0)
       const rawText = command || "";
-      const shortNumber = numberWa.startsWith("62") ? "0" + numberWa.slice(2) : "";
+      const noCountry = numberWa.startsWith("62") ? numberWa.slice(2) : numberWa;
+      const withZero = numberWa.startsWith("62") ? "0" + numberWa.slice(2) : "";
       const isMentionedInText =
-        rawText.includes("@" + numberWa) ||
-        (shortNumber && rawText.includes("@" + shortNumber));
+        rawText.includes("@" + numberWa) ||       // @6285178969047
+        rawText.includes("@" + noCountry) ||       // @85178969047
+        (withZero && rawText.includes("@" + withZero)); // @085178969047
 
       console.log("[GROUP-MENTION] jids:", mentionedJids, "viaJid:", isMentionedViaJid, "viaText:", isMentionedInText);
 
