@@ -106,9 +106,12 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
     msgRetryCounterCache,
     generateHighQualityLinkPreview: true,
     retryRequestDelayMs: 5 * 1000,
-    maxMsgRetryCount: 1000,
+    maxMsgRetryCount: 5,
     syncFullHistory: false,
-    transactionOpts: { maxCommitRetries: 1, delayBetweenTriesMs: 10 },
+    transactionOpts: { maxCommitRetries: 10, delayBetweenTriesMs: 10 },
+    getMessage: async (key) => {
+      return { conversation: "" };
+    },
   });
 
   if (viaOtp && "me" in state.creds === false && !state.creds.registered) {
