@@ -92,7 +92,7 @@ const connectToWhatsApp = async (token, io = null, viaOtp = false) => {
 
   sock[token] = makeWASocket({
     version: version,
-    browser: ["Windows", "Chrome", release()],
+    browser: ["Ubuntu", "Chrome", "22.04.4"],
     version,
     logger,
     // printQRInTerminal: !viaOtp,
