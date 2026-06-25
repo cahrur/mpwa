@@ -357,7 +357,8 @@ async function isExist(token, number) {
     if (number.includes("@g.us")) {
       return true;
     } else {
-      const [result] = await sock[token].onWhatsApp("+" + number);
+      const res = await sock[token].onWhatsApp("+" + number);
+      const result = Array.isArray(res) ? res[0] : undefined;
       return number.length > 11 ? result : true;
     }
   } catch (error) {
